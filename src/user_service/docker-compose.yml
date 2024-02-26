@@ -22,7 +22,7 @@ services:
     build: .
     restart: on-failure
     container_name: app
-    command: sh -c "go build -o http cmd/http/main.go && ./http"
+    command: sh -c "goose -dir ./sql/schema/ postgres $DB_URL up && go build -o http cmd/http/main.go && ./http"
     volumes:
       - .:/go/src/app
     ports:
