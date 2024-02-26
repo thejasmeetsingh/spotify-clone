@@ -1,0 +1,23 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    restart: on-failure
+    container_name: app
+    command: sh -c "go build -o http cmd/http/main.go && ./http"
+    volumes:
+      - .:/go/src/app
+    ports:
+      - $HTTP_PORT:$HTTP_PORT
+    env_file: .env
+
+  grpc:
+    build: .
+    restart: on-failure
+    container_name: grpc
+    command: sh -c "go build -o grpc cmd/grpc/main.go && ./grpc"
+    volumes:
+      - .:/go/src/app
+    ports:
+      - $GRPC_PORT:$GRPC_PORT
+    env_file: .env

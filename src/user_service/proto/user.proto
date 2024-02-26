@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "./pb";
+
+service UserService {
+    rpc UserDetail(UserDetailRequest) returns (UserDetailResponse) {}
+}
+
+message UserDetailRequest {
+    string token = 1;
+}
+
+message UserDetailResponse {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+}
