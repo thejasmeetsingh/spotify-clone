@@ -1,42 +1,53 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
+	"github.com/thejasmeetsingh/spotify-clone/src/user_service/api"
 )
+
+func getLoggerFormat(params gin.LogFormatterParams) string {
+	return fmt.Sprintf(
+		"%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+		params.ClientIP,
+		params.TimeStamp.Format(time.RFC1123),
+		params.Method,
+		params.Path,
+		params.Request.Proto,
+		params.StatusCode,
+		params.Latency,
+		params.Request.UserAgent(),
+		params.ErrorMessage,
+	)
+}
 
 func main() {
 	godotenv.Load()
 	engine := gin.Default()
 
-	port := os.Getenv("HTTP_PORT")
-
-	if port == "" {
-		log.Fatalln("port is not configured")
+	// DB config
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DB_URL"))
+	if err != nil {
+		log.Fatalln("error while connecting to DB: ", err)
 	}
+	defer conn.Close(context.Background())
 
-	engine.Use(gin.LoggerWithFormatter(func(params gin.LogFormatterParams) string {
-		return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
-			params.ClientIP,
-			params.TimeStamp.Format(time.RFC1123),
-			params.Method,
-			params.Path,
-			params.Request.Proto,
-			params.StatusCode,
-			params.Latency,
-			params.Request.UserAgent(),
-			params.ErrorMessage,
-		)
-	}))
+	// Load API routes
+	api.Routes(engine, conn)
+
+	// Server config
+	engine.Use(gin.LoggerWithFormatter(getLoggerFormat))
 
 	s := &http.Server{
-		Addr:           ":" + port,
+		Addr:           ":" + os.Getenv("HTTP_PORT"),
 		Handler:        engine,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
