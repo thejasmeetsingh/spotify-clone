@@ -12,9 +12,19 @@ func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
 		Queries: database.New(dbConn),
 	}
 
-	router := engine.Group("/api/v1/")
+	// Public API Routes
+	pubRouter := engine.Group("/api/v1/")
+	authRouter := pubRouter.Group("")
+	authRouter.Use(JWTAuth((dbConfig)))
 
-	router.POST("register/", SignUp(dbConfig))
-	router.POST("login/", Login(dbConfig))
-	router.POST("refresh-token/", RefreshAccessToken(dbConfig))
+	// Non auth routes
+	pubRouter.POST("register/", SignUp(dbConfig))
+	pubRouter.POST("login/", Login(dbConfig))
+	pubRouter.POST("refresh-token/", RefreshAccessToken(dbConfig))
+
+	// Auth routes
+	authRouter.GET("profile/", GetUserProfile(dbConfig))
+	authRouter.PATCH("profile/", UpdateUserProfile(dbConfig))
+	authRouter.DELETE("profile/", DeleteUserProfile(dbConfig))
+	authRouter.PUT("change-password/", ChangePassword(dbConfig))
 }
