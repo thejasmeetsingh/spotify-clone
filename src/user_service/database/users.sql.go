@@ -8,6 +8,7 @@ package database
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -18,7 +19,7 @@ RETURNING id, created_at, modified_at, email, password, name
 `
 
 type CreateUserParams struct {
-	ID         pgtype.UUID
+	ID         uuid.UUID
 	CreatedAt  pgtype.Timestamp
 	ModifiedAt pgtype.Timestamp
 	Email      string
@@ -49,7 +50,7 @@ const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users WHERE id=$1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
@@ -76,7 +77,7 @@ const getUserById = `-- name: GetUserById :one
 SELECT id, created_at, modified_at, email, password, name FROM users WHERE id=$1 FOR UPDATE NOWAIT
 `
 
-func (q *Queries) GetUserById(ctx context.Context, id pgtype.UUID) (User, error) {
+func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserById, id)
 	var i User
 	err := row.Scan(
@@ -100,7 +101,7 @@ type UpdateUserDetailsParams struct {
 	Email      string
 	Name       pgtype.Text
 	ModifiedAt pgtype.Timestamp
-	ID         pgtype.UUID
+	ID         uuid.UUID
 }
 
 func (q *Queries) UpdateUserDetails(ctx context.Context, arg UpdateUserDetailsParams) (User, error) {
@@ -130,7 +131,7 @@ WHERE id=$3
 type UpdateUserPasswordParams struct {
 	Password   string
 	ModifiedAt pgtype.Timestamp
-	ID         pgtype.UUID
+	ID         uuid.UUID
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {

@@ -7,8 +7,14 @@ import (
 )
 
 func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
-	dbConfig := database.GetConfig(dbConn)
+	dbConfig := &database.Config{
+		DB:      dbConn,
+		Queries: database.New(dbConn),
+	}
+
 	router := engine.Group("/api/v1/")
 
 	router.POST("register/", SignUp(dbConfig))
+	router.POST("login/", Login(dbConfig))
+	router.POST("refresh-token/", RefreshAccessToken(dbConfig))
 }
