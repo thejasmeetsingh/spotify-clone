@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
 	"github.com/thejasmeetsingh/spotify-clone/src/user_service/api"
 )
@@ -30,7 +29,6 @@ func getLoggerFormat(params gin.LogFormatterParams) string {
 }
 
 func main() {
-	godotenv.Load()
 	engine := gin.Default()
 
 	// DB config
