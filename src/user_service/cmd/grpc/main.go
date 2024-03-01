@@ -102,6 +102,7 @@ func (s *server) UserDetail(ctx context.Context, in *pb.UserDetailRequest) (*pb.
 	// Fetch user by ID from DB
 	dbUser, err := database.GetUserByIDFromDB(dbCfg, ctx, userID)
 	if err != nil {
+		log.Fatalln("error caught while fetching user details: ", err)
 		return nil, status.Errorf(codes.Internal, "something went wrong")
 	}
 

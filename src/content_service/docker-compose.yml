@@ -34,7 +34,7 @@ services:
     build: .
     restart: on-failure
     container_name: content_app
-    command: sh -c "goose -dir ./sql/schema/ postgres $DB_URL up && go build -o http cmd/http/main.go && ./http"
+    command: sh -c "goose -dir ./sql/schema/ postgres $DB_URL up && go build -o http main.go && ./http"
     volumes:
       - .:/go/src/app
     ports:
@@ -45,19 +45,6 @@ services:
         condition: service_healthy
       content-redis:
         condition: service_healthy
-    networks:
-      - internal
-
-  content-grpc:
-    build: .
-    restart: on-failure
-    container_name: content_grpc
-    command: sh -c "go build -o grpc cmd/grpc/main.go && ./grpc"
-    volumes:
-      - .:/go/src/app
-    ports:
-      - $GRPC_PORT:$GRPC_PORT
-    env_file: .env
     networks:
       - internal
       - shared-network
