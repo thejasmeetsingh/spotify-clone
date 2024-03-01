@@ -28,7 +28,7 @@ func valid(authorization []string) bool {
 		return false
 	}
 	token := strings.TrimPrefix(authorization[0], "Bearer ")
-	return token == "secret-auth-key"
+	return token == os.Getenv("GRPC_AUTH_KEY")
 }
 
 func ensureValidToken(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
@@ -64,7 +64,7 @@ func main() {
 }
 
 func dbConn(ctx context.Context) (*pgx.Conn, error) {
-	return pgx.Connect(context.Background(), os.Getenv("DB_URL"))
+	return pgx.Connect(ctx, os.Getenv("DB_URL"))
 }
 
 func (s *server) UserDetail(ctx context.Context, in *pb.UserDetailRequest) (*pb.UserDetailResponse, error) {

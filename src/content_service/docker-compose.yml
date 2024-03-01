@@ -1,0 +1,55 @@
+version: "3.8"
+services:
+  db:
+    container_name: db
+    restart: always
+    image: postgres:16.1-alpine3.18
+    volumes:
+      - db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=$DB_USER
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+      - POSTGRES_DB=$DB_NAME
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $DB_NAME -U $DB_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  app:
+    build: .
+    restart: on-failure
+    container_name: app
+    command: sh -c "goose -dir ./sql/schema/ postgres $DB_URL up && go build -o http cmd/http/main.go && ./http"
+    volumes:
+      - .:/go/src/app
+    ports:
+      - $HTTP_PORT:$HTTP_PORT
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  grpc:
+    build: .
+    restart: on-failure
+    container_name: grpc
+    command: sh -c "go build -o grpc cmd/grpc/main.go && ./grpc"
+    volumes:
+      - .:/go/src/app
+    ports:
+      - $GRPC_PORT:$GRPC_PORT
+    env_file: .env
+    networks:
+      - internal
+
+volumes:
+  db:
+
+networks:
+  internal:
+    driver: bridge
