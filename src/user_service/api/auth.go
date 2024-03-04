@@ -14,7 +14,7 @@ import (
 	"github.com/thejasmeetsingh/spotify-clone/src/user_service/validators"
 )
 
-func SignUp(dbCfg *database.Config) gin.HandlerFunc {
+func signUp(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		type Parameters struct {
 			Email    string `json:"email" binding:"required,email"`
@@ -110,8 +110,8 @@ func SignUp(dbCfg *database.Config) gin.HandlerFunc {
 	}
 }
 
-// Login API
-func Login(dbCfg *database.Config) gin.HandlerFunc {
+// login API
+func login(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		type Parameters struct {
 			Email    string `json:"email" binding:"required,email"`
@@ -160,28 +160,26 @@ func Login(dbCfg *database.Config) gin.HandlerFunc {
 // Refresh Token API
 //
 // Generate new tokens if the given refresh token is valid
-func RefreshAccessToken(dbCfg *database.Config) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		type Parameters struct {
-			RefreshToken string `json:"refresh_token"`
-		}
-
-		var params Parameters
-		err := ctx.ShouldBindJSON(&params)
-
-		if err != nil {
-			log.Errorln("Error caught while parsing refresh token request data: ", err)
-			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Error while parsing the request data"})
-			return
-		}
-
-		tokens, err := utils.ReIssueAccessToken(params.RefreshToken)
-		if err != nil {
-			log.Errorln("Error caught while re-issuing auth tokens: ", err)
-			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Error while issuing new tokens"})
-			return
-		}
-
-		ctx.SecureJSON(http.StatusOK, gin.H{"message": "Tokens re-issued Successfully!", "data": tokens})
+func refreshAccessToken(ctx *gin.Context) {
+	type Parameters struct {
+		RefreshToken string `json:"refresh_token"`
 	}
+
+	var params Parameters
+	err := ctx.ShouldBindJSON(&params)
+
+	if err != nil {
+		log.Errorln("Error caught while parsing refresh token request data: ", err)
+		ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Error while parsing the request data"})
+		return
+	}
+
+	tokens, err := utils.ReIssueAccessToken(params.RefreshToken)
+	if err != nil {
+		log.Errorln("Error caught while re-issuing auth tokens: ", err)
+		ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Error while issuing new tokens"})
+		return
+	}
+
+	ctx.SecureJSON(http.StatusOK, gin.H{"message": "Tokens re-issued Successfully!", "data": tokens})
 }

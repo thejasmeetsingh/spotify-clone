@@ -32,19 +32,17 @@ func getUserFromCtx(ctx *gin.Context) (User, error) {
 }
 
 // Fetch user profile details
-func GetUserProfile(dbCfg *database.Config) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		user, err := getUserFromCtx(ctx)
-		if err != nil {
-			ctx.SecureJSON(http.StatusForbidden, gin.H{"message": err.Error()})
-			return
-		}
-		ctx.SecureJSON(http.StatusOK, gin.H{"data": user})
+func getUserProfile(ctx *gin.Context) {
+	user, err := getUserFromCtx(ctx)
+	if err != nil {
+		ctx.SecureJSON(http.StatusForbidden, gin.H{"message": err.Error()})
+		return
 	}
+	ctx.SecureJSON(http.StatusOK, gin.H{"data": user})
 }
 
 // Update user profile details
-func UpdateUserProfile(dbCfg *database.Config) gin.HandlerFunc {
+func updateUserProfile(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		user, err := getUserFromCtx(ctx)
 		if err != nil {
@@ -123,7 +121,7 @@ func UpdateUserProfile(dbCfg *database.Config) gin.HandlerFunc {
 }
 
 // Delete user profile
-func DeleteUserProfile(dbCfg *database.Config) gin.HandlerFunc {
+func deleteUserProfile(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		user, err := getUserFromCtx(ctx)
 		if err != nil {
@@ -140,7 +138,7 @@ func DeleteUserProfile(dbCfg *database.Config) gin.HandlerFunc {
 }
 
 // Change password API for authenticated user
-func ChangePassword(dbCfg *database.Config) gin.HandlerFunc {
+func changePassword(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		user, err := getUserFromCtx(ctx)
 		if err != nil {

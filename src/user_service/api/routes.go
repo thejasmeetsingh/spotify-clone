@@ -27,13 +27,13 @@ func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
 	authRouter.Use(JWTAuth((dbConfig)))
 
 	// Non auth routes
-	pubRouter.POST("register/", SignUp(dbConfig))
-	pubRouter.POST("login/", Login(dbConfig))
-	pubRouter.POST("refresh-token/", RefreshAccessToken(dbConfig))
+	pubRouter.POST("register/", signUp(dbConfig))
+	pubRouter.POST("login/", login(dbConfig))
+	pubRouter.POST("refresh-token/", refreshAccessToken)
 
 	// Auth routes
-	authRouter.GET("profile/", GetUserProfile(dbConfig))
-	authRouter.PATCH("profile/", UpdateUserProfile(dbConfig))
-	authRouter.DELETE("profile/", DeleteUserProfile(dbConfig))
-	authRouter.PUT("change-password/", ChangePassword(dbConfig))
+	authRouter.GET("profile/", getUserProfile)
+	authRouter.PATCH("profile/", updateUserProfile(dbConfig))
+	authRouter.DELETE("profile/", deleteUserProfile(dbConfig))
+	authRouter.PUT("change-password/", changePassword(dbConfig))
 }
