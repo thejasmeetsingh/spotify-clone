@@ -15,7 +15,7 @@ type User struct {
 	Email string    `json:"email"`
 }
 
-func DatabaseUserToUser(dbUser *database.User) User {
+func databaseUserToUser(dbUser *database.User) User {
 	return User{
 		ID:    dbUser.ID,
 		Name:  dbUser.Name.String,

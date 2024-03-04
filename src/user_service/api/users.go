@@ -115,7 +115,7 @@ func updateUserProfile(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		user = DatabaseUserToUser(dbUser)
+		user = databaseUserToUser(dbUser)
 		ctx.SecureJSON(http.StatusOK, gin.H{"message": "Profile details updated successfully!", "data": user})
 	}
 }

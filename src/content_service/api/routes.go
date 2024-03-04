@@ -21,6 +21,14 @@ func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
 		})
 	})
 
-	router := engine.Group("/api/v1/")
-	router.Use(JWTAuth((dbConfig)))
+	pubRouter := engine.Group("/api/v1/")
+	authRouter := pubRouter.Group("")
+	authRouter.Use(JWTAuth((dbConfig)))
+
+	// Non auth routes
+	pubRouter.GET("content/", getContentList(dbConfig))
+	pubRouter.GET("content/:id/", getContentDetail(dbConfig))
+
+	// Auth routes
+	authRouter.GET("user-content/", getUserContentList(dbConfig))
 }

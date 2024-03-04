@@ -65,7 +65,7 @@ func JWTAuth(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("user", DatabaseUserToUser(dbUser))
+		ctx.Set("user", databaseUserToUser(dbUser))
 
 		// Further call the given handler and send the user instance as well
 		ctx.Next()
