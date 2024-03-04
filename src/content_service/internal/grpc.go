@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-var addr = flag.String("addr", "localhost:8080", "the gRPC server address")
+var addr = flag.String("addr", os.Getenv("GRPC_SERVER_ADDRESS"), "the gRPC server address")
 
 func fetchUserDetail(token string) (*pb.UserDetailResponse, error) {
 	flag.Parse()

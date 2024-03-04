@@ -5,13 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
 )
 
 func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
-	// dbConfig := &database.Config{
-	// 	DB:      dbConn,
-	// 	Queries: database.New(dbConn),
-	// }
+	dbConfig := &database.Config{
+		DB:      dbConn,
+		Queries: database.New(dbConn),
+	}
 
 	// Default route for health check
 	engine.GET("/health-check/", func(ctx *gin.Context) {
@@ -20,19 +21,6 @@ func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
 		})
 	})
 
-	// Public API Routes
-	// pubRouter := engine.Group("/api/v1/")
-	// authRouter := pubRouter.Group("")
-	// authRouter.Use(JWTAuth((dbConfig)))
-
-	// Non auth routes
-	// pubRouter.POST("register/", SignUp(dbConfig))
-	// pubRouter.POST("login/", Login(dbConfig))
-	// pubRouter.POST("refresh-token/", RefreshAccessToken(dbConfig))
-
-	// Auth routes
-	// authRouter.GET("profile/", GetUserProfile(dbConfig))
-	// authRouter.PATCH("profile/", UpdateUserProfile(dbConfig))
-	// authRouter.DELETE("profile/", DeleteUserProfile(dbConfig))
-	// authRouter.PUT("change-password/", ChangePassword(dbConfig))
+	router := engine.Group("/api/v1/")
+	router.Use(JWTAuth((dbConfig)))
 }

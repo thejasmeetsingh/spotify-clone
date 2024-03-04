@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
 	"github.com/thejasmeetsingh/spotify-clone/src/content_service/internal"
@@ -34,12 +35,20 @@ func JWTAuth(dbCfg *database.Config) gin.HandlerFunc {
 		user, err := internal.GetUserDetail(ctx, authToken[1])
 		if err != nil {
 			log.Errorln("error while fetching user details: ", err)
-			ctx.JSON(http.StatusForbidden, gin.H{"message": "Something went wrong"})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			ctx.Abort()
 			return
 		}
 
-		ctx.Set("userID", user.ID)
+		userID, err := uuid.Parse(user.ID)
+		if err != nil {
+			log.Errorln("error caught while parsing user ID: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			ctx.Abort()
+			return
+		}
+
+		ctx.Set("userID", userID)
 		ctx.Next()
 	}
 }
