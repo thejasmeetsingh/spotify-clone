@@ -1,4 +1,4 @@
-package pb
+package internal
 
 import (
 	"context"
@@ -13,13 +13,10 @@ import (
 
 var addr = flag.String("addr", "localhost:8080", "the gRPC server address")
 
-func getGrpcConn() (*grpc.ClientConn, error) {
+func fetchUserDetail(token string) (*pb.UserDetailResponse, error) {
 	flag.Parse()
-	return grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-}
 
-func GetUserDetail() (*pb.UserDetailResponse, error) {
-	conn, err := getGrpcConn()
+	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +26,7 @@ func GetUserDetail() (*pb.UserDetailResponse, error) {
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	var header, trailer metadata.MD
-	r, err := c.UserDetail(ctx, &pb.UserDetailRequest{Token: ""}, grpc.Header(&header), grpc.Trailer(&trailer))
+	r, err := c.UserDetail(ctx, &pb.UserDetailRequest{Token: token}, grpc.Header(&header), grpc.Trailer(&trailer))
 	if err != nil {
 		return nil, err
 	}
