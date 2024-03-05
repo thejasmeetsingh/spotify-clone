@@ -26,9 +26,9 @@ func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
 	authRouter.Use(JWTAuth((dbConfig)))
 
 	// Non auth routes
-	pubRouter.GET("content/", getContentList(dbConfig))
-	pubRouter.GET("content/:id/", getContentDetail(dbConfig))
+	pubRouter.GET("list/", getContentList(dbConfig))
+	pubRouter.GET(":id/", getContentDetail(dbConfig))
 
 	// Auth routes
-	authRouter.GET("user-content/", getUserContentList(dbConfig))
+	authRouter.GET("user/", getUserContentList(dbConfig))
 }
