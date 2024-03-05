@@ -25,14 +25,13 @@ services:
     command: sh -c "goose -dir ./sql/schema/ postgres $DB_URL up && go build -o http cmd/http/main.go && ./http"
     volumes:
       - .:/go/src/app
-    ports:
-      - $HTTP_PORT:$HTTP_PORT
     env_file: .env
     depends_on:
       user-db:
         condition: service_healthy
     networks:
       - internal
+      - shared-network
 
   user-grpc:
     build: .

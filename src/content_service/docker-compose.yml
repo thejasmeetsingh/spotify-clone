@@ -37,8 +37,6 @@ services:
     command: sh -c "goose -dir ./sql/schema/ postgres $DB_URL up && go build -o http main.go && ./http"
     volumes:
       - .:/go/src/app
-    ports:
-      - $HTTP_PORT:$HTTP_PORT
     env_file: .env
     depends_on:
       content-db:
