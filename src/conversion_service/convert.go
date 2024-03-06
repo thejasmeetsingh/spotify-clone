@@ -70,11 +70,6 @@ func uploadFile(client *s3.Client, bucket, key, filename string) {
 	log.Infof("%s object uploaded successfully", key)
 }
 
-func getFileName(key string) string {
-	filename := strings.Split(key, ".")[0]
-	return filename + ".m3u8"
-}
-
 func ConvertMediaFile(key string, isAudioFile bool) {
 	client, err := getS3Client()
 	if err != nil {
@@ -84,7 +79,7 @@ func ConvertMediaFile(key string, isAudioFile bool) {
 
 	bucket := os.Getenv("AWS_BUCKET")
 	downloadPath := fmt.Sprintf("/media/%s", key)
-	outputPath := fmt.Sprintf("/output/%s", getFileName(key))
+	outputPath := fmt.Sprintf("/output/%s", strings.Split(key, ".")[0] + ".m3u8")
 
 	// Download the file from s3
 	downloadFile(client, bucket, key, downloadPath)
