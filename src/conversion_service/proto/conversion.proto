@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package conversion;
+
+option go_package = "./pb";
+
+service ConversionService {
+    rpc Conversion(ConversionRequest) returns (ConversionResponse) {}
+}
+
+message ConversionRequest {
+    string key = 1;
+}
+
+message ConversionResponse {
+    string message = 1;
+}
