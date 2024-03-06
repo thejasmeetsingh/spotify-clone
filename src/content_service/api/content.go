@@ -1,10 +1,16 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -120,4 +126,45 @@ func getContentDetail(dbCfg *database.Config) gin.HandlerFunc {
 
 		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent)})
 	}
+}
+
+func getPresignedURL(ctx *gin.Context) {
+	type Parameters struct {
+		ContentID string `json:"content_id" binding:"required"`
+		FileName  string `json:"filename" binding:"required"`
+	}
+	var params Parameters
+	err := ctx.ShouldBindJSON(&params)
+
+	if err != nil {
+		log.Errorln("error while parsing request data: ", err)
+		ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Invalid request data"})
+		return
+	}
+
+	// Load default AWS config
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+
+	if err != nil {
+		log.Fatalln("error caught while loading aws config: ", err)
+		ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+		return
+	}
+
+	// Create s3 client
+	client := s3.NewPresignClient(s3.NewFromConfig(cfg))
+
+	// Generate pre-signed URL for file upload
+	res, err := client.PresignPutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(os.Getenv("AWS_REGION")),
+		Key:    aws.String(params.ContentID + "." + strings.Split(params.FileName, ".")[1]),
+	})
+
+	if err != nil {
+		log.Fatalln("error caught while generating pre-sign upload URL: ", err)
+		ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+		return
+	}
+
+	ctx.SecureJSON(http.StatusOK, gin.H{"data": res.URL})
 }
