@@ -49,10 +49,11 @@ func downloadFile(client *s3.Client, bucket, key, downloadPath string) error {
 	return nil
 }
 
-func uploadFile(client *s3.Client, bucket, key, filename string) error {
+func uploadFile(client *s3.Client, bucket, key, filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return err
+		log.Fatalln("error while opening the given file: ", err)
+		return
 	}
 	defer file.Close()
 
@@ -62,11 +63,11 @@ func uploadFile(client *s3.Client, bucket, key, filename string) error {
 		Key:    aws.String(key),
 		Body:   file,
 	}); err != nil {
-		return nil
+		log.Fatalln("error caught while uploading file to s3: ", err)
+		return
 	}
 
 	log.Infof("%s object uploaded successfully", key)
-	return nil
 }
 
 func getFileName(key string) string {
@@ -105,6 +106,6 @@ func ConvertMediaFile(key string, isAudioFile bool) {
 		return
 	}
 
-	// Upload back to s3
+	// Upload file back to s3 in background
 	go uploadFile(client, bucket, key, downloadPath)
 }
