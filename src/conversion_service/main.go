@@ -57,3 +57,12 @@ func main() {
 		log.Fatalln("failed to serve gRPC: ", err)
 	}
 }
+
+func (s *server) Conversion(ctx context.Context, in *pb.ConversionRequest) (*pb.ConversionResponse, error) {
+	// Convert the media file in background
+	go ConvertMediaFile(in.GetKey(), in.GetIsAudioFile())
+
+	return &pb.ConversionResponse{
+		Message: "Request received successfully, Processing media file",
+	}, nil
+}

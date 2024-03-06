@@ -17,3 +17,9 @@ content-service-up:
 
 content-service-down:
 	docker-compose -f src/content_service/docker-compose.yml down
+
+conversion-service-up:
+	docker-compose -f src/conversion_service/docker-compose.yml up -d
+
+conversion-service-down:
+	docker-compose -f src/conversion_service/docker-compose.yml down

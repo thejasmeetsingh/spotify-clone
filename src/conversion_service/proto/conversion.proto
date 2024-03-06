@@ -10,6 +10,7 @@ service ConversionService {
 
 message ConversionRequest {
     string key = 1;
+    bool isAudioFile = 2;
 }
 
 message ConversionResponse {
