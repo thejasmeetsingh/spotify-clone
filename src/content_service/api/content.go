@@ -18,6 +18,7 @@ import (
 	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
 )
 
+// Parse the offset from query params
 func getOffset(ctx *gin.Context) int32 {
 	offsetStr := ctx.Query("offset")
 	if offsetStr == "" {
@@ -31,6 +32,7 @@ func getOffset(ctx *gin.Context) int32 {
 	return int32(offset)
 }
 
+// Get and Parse userID from the context
 func getUserID(ctx *gin.Context) (uuid.UUID, error) {
 	userIDStr, isExists := ctx.Get("userID")
 	if !isExists {
@@ -44,10 +46,13 @@ func getUserID(ctx *gin.Context) (uuid.UUID, error) {
 	return userID, nil
 }
 
+// API for getting list of content present on the system
+// Non-auth API: Anyone can view contents
 func getContentList(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		offset := getOffset(ctx)
 
+		// Fetch content list from DB
 		dbContentList, err := database.GetContentListDB(dbCfg, ctx, database.GetContentListParams{
 			Limit:  10,
 			Offset: offset,
@@ -59,19 +64,24 @@ func getContentList(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
+		// Return an empty array if db contents list is empty
+		if len(dbContentList) == 0 {
+			ctx.JSON(http.StatusOK, gin.H{"results": []string{}})
+			return
+		}
+
+		// Parse DB content list with appropriate key names
 		contentList, err := databaseContentListToContentList(dbContentList)
 		if err != nil {
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
-		if len(contentList) == 0 {
-			ctx.JSON(http.StatusOK, gin.H{"results": []string{}})
-			return
-		}
+
 		ctx.SecureJSON(http.StatusOK, gin.H{"results": contentList})
 	}
 }
 
+// API for getting contents added by current user
 func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		userID, err := getUserID(ctx)
@@ -83,6 +93,7 @@ func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 
 		offset := getOffset(ctx)
 
+		// Fetch user contents from DB
 		dbContentUserList, err := database.GetUserContentDB(dbCfg, ctx, database.GetUserContentParams{
 			UserID: userID,
 			Limit:  10,
@@ -95,19 +106,25 @@ func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
+		// Return an empty array if user contents list is empty
+		if len(dbContentUserList) == 0 {
+			ctx.JSON(http.StatusOK, gin.H{"results": []string{}})
+			return
+		}
+
+		// Parse DB content list with appropriate key names
 		userContentList, err := databaseContentListToContentList(dbContentUserList)
 		if err != nil {
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
-		if len(userContentList) == 0 {
-			ctx.JSON(http.StatusOK, gin.H{"results": []string{}})
-			return
-		}
+
 		ctx.SecureJSON(http.StatusOK, gin.H{"results": userContentList})
 	}
 }
 
+// API for getting content detail
+// Non-auth API: Anyone can view the content details
 func getContentDetail(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		contentIDStr := ctx.Param("id")
@@ -129,6 +146,7 @@ func getContentDetail(dbCfg *database.Config) gin.HandlerFunc {
 	}
 }
 
+// API for adding a content into the DB
 func addContent(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		type Parameters struct {
@@ -178,6 +196,115 @@ func addContent(dbCfg *database.Config) gin.HandlerFunc {
 	}
 }
 
+func updateContent(dbCfg *database.Config) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		type Parameters struct {
+			Title       string `json:"title"`
+			Description string `json:"description"`
+			Type        string `json:"type"`
+		}
+		var params Parameters
+
+		// Parse request data
+		err := ctx.ShouldBindJSON(&params)
+
+		if err != nil {
+			log.Errorln("error while parsing request data: ", err)
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Invalid request data"})
+			return
+		}
+
+		// Parse content ID passed in request path
+		contentID, err := uuid.Parse(ctx.Param("id"))
+		if err != nil {
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Invalid content ID"})
+			return
+		}
+
+		// Fetch content record from DB
+		dbContent, err := database.GetContentDetailDB(dbCfg, ctx, contentID)
+		if err != nil {
+			log.Fatalln("error caught while fetching content detail: ", err)
+			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			return
+		}
+
+		// Pre-fill empty values
+		// So that no empty values gets saved in DB
+		if params.Title == "" {
+			params.Title = dbContent.Title
+		}
+
+		if params.Description == "" {
+			params.Description = dbContent.Description
+		}
+
+		if params.Type == "" {
+			params.Type = string(dbContent.Type)
+		}
+
+		// Update content detail in DB
+		dbContent, err = database.UpdateContentDetailDB(dbCfg, ctx, database.UpdateContentDetailsParams{
+			ID:          contentID,
+			Title:       params.Title,
+			Description: params.Description,
+			Type:        database.ContentType(params.Type),
+			ModifiedAt: pgtype.Timestamp{
+				Time:  time.Now().UTC(),
+				Valid: true,
+			},
+		})
+		if err != nil {
+			log.Fatalln("error caught while updating content detail: ", err)
+			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			return
+		}
+
+		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent)})
+	}
+}
+
+func updateContentS3Key(dbCfg *database.Config) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		type Parameters struct {
+			Key string `json:"key" binding:"required"`
+		}
+		var params Parameters
+
+		// Parse request data
+		err := ctx.ShouldBindJSON(&params)
+		if err != nil {
+			log.Errorln("error while parsing request data: ", err)
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Invalid request data"})
+			return
+		}
+
+		// Parse content ID passed in request path
+		contentID, err := uuid.Parse(ctx.Param("id"))
+		if err != nil {
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Invalid content ID"})
+			return
+		}
+
+		// Update S3 key in DB
+		if err = database.UpdateContentS3KeyDB(dbCfg, ctx, database.UpdateS3KeyParams{
+			ID:    contentID,
+			S3Key: params.Key,
+			ModifiedAt: pgtype.Timestamp{
+				Time:  time.Now().UTC(),
+				Valid: true,
+			},
+		}); err != nil {
+			log.Fatalln("error caught while updating content s3 key: ", err)
+			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			return
+		}
+
+		ctx.SecureJSON(http.StatusOK, gin.H{"message": "Key updated successfully"})
+	}
+}
+
+// API for getting pre-signed URL for file upload
 func getPresignedURL(ctx *gin.Context) {
 	type Parameters struct {
 		ContentID   string `json:"content_id" binding:"required"`
@@ -218,6 +345,7 @@ func getPresignedURL(ctx *gin.Context) {
 		return
 	}
 
+	// Prepare response data
 	resData := map[string]string{
 		"url": res.URL,
 		"key": s3_key,
