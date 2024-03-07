@@ -12,7 +12,7 @@ CREATE TABLE content (
     title VARCHAR(50) NOT NULL,
     description TEXT NOT NULL,
     type content_type NOT NULL,
-    s3_key TEXT UNIQUE NOT NULL
+    s3_key TEXT UNIQUE
 );
 
 -- +goose Down

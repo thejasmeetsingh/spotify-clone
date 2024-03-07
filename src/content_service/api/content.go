@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -130,8 +129,9 @@ func getContentDetail(dbCfg *database.Config) gin.HandlerFunc {
 
 func getPresignedURL(ctx *gin.Context) {
 	type Parameters struct {
-		ContentID string `json:"content_id" binding:"required"`
-		FileName  string `json:"filename" binding:"required"`
+		ContentID   string `json:"content_id" binding:"required"`
+		FileName    string `json:"filename" binding:"required"`
+		IsAudioFile bool   `json:"is_audio_file" binding:"required"`
 	}
 	var params Parameters
 	err := ctx.ShouldBindJSON(&params)
@@ -153,11 +153,12 @@ func getPresignedURL(ctx *gin.Context) {
 
 	// Create s3 client
 	client := s3.NewPresignClient(s3.NewFromConfig(cfg))
+	s3_key := getUniqueFilename(params.ContentID, params.FileName, params.IsAudioFile)
 
 	// Generate pre-signed URL for file upload
 	res, err := client.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(os.Getenv("AWS_REGION")),
-		Key:    aws.String(params.ContentID + "." + strings.Split(params.FileName, ".")[1]),
+		Key:    aws.String(s3_key),
 	})
 
 	if err != nil {
@@ -166,5 +167,10 @@ func getPresignedURL(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SecureJSON(http.StatusOK, gin.H{"data": res.URL})
+	resData := map[string]string{
+		"url": res.URL,
+		"key": s3_key,
+	}
+
+	ctx.SecureJSON(http.StatusOK, gin.H{"data": resData})
 }
