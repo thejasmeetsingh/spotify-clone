@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	log "github.com/sirupsen/logrus"
 	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
 )
@@ -124,6 +126,55 @@ func getContentDetail(dbCfg *database.Config) gin.HandlerFunc {
 		}
 
 		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent)})
+	}
+}
+
+func addContent(dbCfg *database.Config) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		type Parameters struct {
+			Title       string `json:"title" binding:"required"`
+			Description string `json:"description" binding:"required"`
+			Type        string `json:"type" binding:"required"`
+		}
+		var params Parameters
+
+		err := ctx.ShouldBindJSON(&params)
+		if err != nil {
+			log.Errorln("error while parsing request data: ", err)
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Invalid request data"})
+			return
+		}
+
+		userID, err := getUserID(ctx)
+		if err != nil {
+			log.Fatalln(err)
+			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			return
+		}
+
+		dbContent, err := database.AddContentDB(dbCfg, ctx, database.AddContentParams{
+			ID: uuid.New(),
+			CreatedAt: pgtype.Timestamp{
+				Time:  time.Now().UTC(),
+				Valid: true,
+			},
+			ModifiedAt: pgtype.Timestamp{
+				Time:  time.Now().UTC(),
+				Valid: true,
+			},
+			UserID:      userID,
+			Title:       params.Title,
+			Description: params.Description,
+			Type:        database.ContentType(params.Type),
+		})
+
+		if err != nil {
+			log.Fatalln("error caught while adding content details to DB: ", err)
+			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			return
+		}
+
+		ctx.SecureJSON(http.StatusCreated, gin.H{"data": databaseContentToContent(dbContent)})
 	}
 }
 

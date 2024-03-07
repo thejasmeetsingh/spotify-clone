@@ -1,6 +1,6 @@
 -- name: AddContent :one
-INSERT INTO content (id, created_at, modified_at, user_id, title, description, type, s3_key) 
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO content (id, created_at, modified_at, user_id, title, description, type) 
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetContentById :one

@@ -31,5 +31,6 @@ func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
 
 	// Auth routes
 	authRouter.GET("user/", getUserContentList(dbConfig))
+	authRouter.POST("add/", addContent(dbConfig))
 	authRouter.POST("upload/", getPresignedURL)
 }
