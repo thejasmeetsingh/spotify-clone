@@ -28,7 +28,7 @@ type ContentList struct {
 	Type        string    `json:"type"`
 }
 
-func databaseContentToContent(content *database.Content) Content {
+func databaseContentToContent(content *database.Content, user internal.User) Content {
 	return Content{
 		ID:          content.ID,
 		CreatedAt:   content.CreatedAt.Time,
@@ -36,6 +36,7 @@ func databaseContentToContent(content *database.Content) Content {
 		Title:       content.Title,
 		Description: content.Description,
 		Type:        string(content.Type),
+		User:        user,
 		Url:         "",
 	}
 }

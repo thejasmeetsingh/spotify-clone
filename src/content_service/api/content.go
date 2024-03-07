@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	log "github.com/sirupsen/logrus"
 	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
+	"github.com/thejasmeetsingh/spotify-clone/src/content_service/internal"
 )
 
 // Parse the offset from query params
@@ -32,18 +33,19 @@ func getOffset(ctx *gin.Context) int32 {
 	return int32(offset)
 }
 
-// Get and Parse userID from the context
-func getUserID(ctx *gin.Context) (uuid.UUID, error) {
-	userIDStr, isExists := ctx.Get("userID")
-	if !isExists {
-		return uuid.Nil, fmt.Errorf("authentication failed")
+// Get user object from the context
+func getUser(ctx *gin.Context) (internal.User, error) {
+	value, exists := ctx.Get("user")
+	if !exists {
+		return internal.User{}, fmt.Errorf("authentication required")
 	}
 
-	userID, err := uuid.Parse(fmt.Sprintf("%v", userIDStr))
-	if err != nil {
-		return uuid.Nil, err
+	user, ok := value.(internal.User)
+	if !ok {
+		return internal.User{}, fmt.Errorf("invalid user")
 	}
-	return userID, nil
+
+	return user, nil
 }
 
 // API for getting list of content present on the system
@@ -84,7 +86,7 @@ func getContentList(dbCfg *database.Config) gin.HandlerFunc {
 // API for getting contents added by current user
 func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		userID, err := getUserID(ctx)
+		user, err := getUser(ctx)
 		if err != nil {
 			log.Fatalln(err)
 			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
@@ -95,7 +97,7 @@ func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 
 		// Fetch user contents from DB
 		dbContentUserList, err := database.GetUserContentDB(dbCfg, ctx, database.GetUserContentParams{
-			UserID: userID,
+			UserID: user.ID,
 			Limit:  10,
 			Offset: offset,
 		})
@@ -127,11 +129,16 @@ func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 // Non-auth API: Anyone can view the content details
 func getContentDetail(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		contentIDStr := ctx.Param("id")
-		contentID, err := uuid.Parse(contentIDStr)
-
+		contentID, err := uuid.Parse(ctx.Param("id"))
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid content ID format"})
+			return
+		}
+
+		user, err := getUser(ctx)
+		if err != nil {
+			log.Fatalln(err)
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
 			return
 		}
 
@@ -142,7 +149,7 @@ func getContentDetail(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent)})
+		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent, user)})
 	}
 }
 
@@ -163,7 +170,7 @@ func addContent(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		userID, err := getUserID(ctx)
+		user, err := getUser(ctx)
 		if err != nil {
 			log.Fatalln(err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
@@ -180,7 +187,7 @@ func addContent(dbCfg *database.Config) gin.HandlerFunc {
 				Time:  time.Now().UTC(),
 				Valid: true,
 			},
-			UserID:      userID,
+			UserID:      user.ID,
 			Title:       params.Title,
 			Description: params.Description,
 			Type:        database.ContentType(params.Type),
@@ -192,7 +199,7 @@ func addContent(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		ctx.SecureJSON(http.StatusCreated, gin.H{"data": databaseContentToContent(dbContent)})
+		ctx.SecureJSON(http.StatusCreated, gin.H{"data": databaseContentToContent(dbContent, user)})
 	}
 }
 
@@ -218,6 +225,13 @@ func updateContent(dbCfg *database.Config) gin.HandlerFunc {
 		contentID, err := uuid.Parse(ctx.Param("id"))
 		if err != nil {
 			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Invalid content ID"})
+			return
+		}
+
+		user, err := getUser(ctx)
+		if err != nil {
+			log.Fatalln(err)
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
 			return
 		}
 
@@ -260,7 +274,7 @@ func updateContent(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent)})
+		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent, user)})
 	}
 }
 
@@ -313,7 +327,7 @@ func deleteContent(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		userID, err := getUserID(ctx)
+		user, err := getUser(ctx)
 		if err != nil {
 			log.Fatalln(err)
 			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
@@ -323,7 +337,7 @@ func deleteContent(dbCfg *database.Config) gin.HandlerFunc {
 		// Delete content from DB
 		if err = database.DeleteContentDB(dbCfg, ctx, database.DeleteContentParams{
 			ID:     contentID,
-			UserID: userID,
+			UserID: user.ID,
 		}); err != nil {
 			log.Fatalln("error caught while deleting content from DB: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})

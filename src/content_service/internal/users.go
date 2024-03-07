@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -37,8 +38,14 @@ func GetUserDetail(ctx context.Context, token string) (*User, error) {
 		return nil, err
 	}
 
+	// Parse user ID
+	userID, err := uuid.Parse(grpcResponse.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	user := &User{
-		ID:    grpcResponse.Id,
+		ID:    userID,
 		Name:  grpcResponse.Name,
 		Email: grpcResponse.Email,
 	}

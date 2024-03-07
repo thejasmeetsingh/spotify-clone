@@ -2,12 +2,14 @@ package internal
 
 import (
 	"encoding/json"
+
+	"github.com/google/uuid"
 )
 
 type User struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	Email string    `json:"email"`
 }
 
 func UserToByte(user User) ([]byte, error) {
