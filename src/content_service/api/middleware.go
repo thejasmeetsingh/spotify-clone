@@ -39,7 +39,7 @@ func JWTAuth(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("user", user)
+		ctx.Set("user", *user)
 		ctx.Next()
 	}
 }

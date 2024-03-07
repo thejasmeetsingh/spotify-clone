@@ -110,7 +110,7 @@ func GetContentDetailDB(c *Config, ctx context.Context, contentID uuid.UUID) (*C
 }
 
 // Get content posted by a user
-func GetUserContentDB(c *Config, ctx context.Context, params GetUserContentParams) ([]interface{}, error) {
+func GetUserContentDB(c *Config, ctx context.Context, params GetUserContentParams) ([]GetUserContentRow, error) {
 	contents, err := c.Queries.GetUserContent(ctx, params)
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func GetUserContentDB(c *Config, ctx context.Context, params GetUserContentParam
 }
 
 // Get contents from DB
-func GetContentListDB(c *Config, ctx context.Context, params GetContentListParams) ([]interface{}, error) {
+func GetContentListDB(c *Config, ctx context.Context, params GetContentListParams) ([]GetContentListRow, error) {
 	contents, err := c.Queries.GetContentList(ctx, params)
 	if err != nil {
 		return nil, err

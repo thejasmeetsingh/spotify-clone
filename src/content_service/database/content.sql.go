@@ -13,8 +13,8 @@ import (
 )
 
 const addContent = `-- name: AddContent :one
-INSERT INTO content (id, created_at, modified_at, user_id, title, description, type, s3_key) 
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO content (id, created_at, modified_at, user_id, title, description, type) 
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING id, created_at, modified_at, user_id, title, description, type, s3_key
 `
 
@@ -26,7 +26,6 @@ type AddContentParams struct {
 	Title       string
 	Description string
 	Type        ContentType
-	S3Key       string
 }
 
 func (q *Queries) AddContent(ctx context.Context, arg AddContentParams) (Content, error) {
@@ -38,7 +37,6 @@ func (q *Queries) AddContent(ctx context.Context, arg AddContentParams) (Content
 		arg.Title,
 		arg.Description,
 		arg.Type,
-		arg.S3Key,
 	)
 	var i Content
 	err := row.Scan(
@@ -89,7 +87,7 @@ func (q *Queries) GetContentById(ctx context.Context, id uuid.UUID) (Content, er
 }
 
 const getContentList = `-- name: GetContentList :many
-SELECT (id, created_at, title, description, type) FROM content LIMIT $1 OFFSET $2
+SELECT id, created_at, title, description, type FROM content ORDER BY created_at DESC LIMIT $1 OFFSET $2
 `
 
 type GetContentListParams struct {
@@ -97,19 +95,33 @@ type GetContentListParams struct {
 	Offset int32
 }
 
-func (q *Queries) GetContentList(ctx context.Context, arg GetContentListParams) ([]interface{}, error) {
+type GetContentListRow struct {
+	ID          uuid.UUID
+	CreatedAt   pgtype.Timestamp
+	Title       string
+	Description string
+	Type        ContentType
+}
+
+func (q *Queries) GetContentList(ctx context.Context, arg GetContentListParams) ([]GetContentListRow, error) {
 	rows, err := q.db.Query(ctx, getContentList, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []interface{}
+	var items []GetContentListRow
 	for rows.Next() {
-		var column_1 interface{}
-		if err := rows.Scan(&column_1); err != nil {
+		var i GetContentListRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.Title,
+			&i.Description,
+			&i.Type,
+		); err != nil {
 			return nil, err
 		}
-		items = append(items, column_1)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -118,7 +130,7 @@ func (q *Queries) GetContentList(ctx context.Context, arg GetContentListParams) 
 }
 
 const getUserContent = `-- name: GetUserContent :many
-SELECT (id, created_at, title, description, type) FROM content WHERE user_id=$1 LIMIT $2 OFFSET $3
+SELECT id, created_at, title, description, type FROM content WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3
 `
 
 type GetUserContentParams struct {
@@ -127,19 +139,33 @@ type GetUserContentParams struct {
 	Offset int32
 }
 
-func (q *Queries) GetUserContent(ctx context.Context, arg GetUserContentParams) ([]interface{}, error) {
+type GetUserContentRow struct {
+	ID          uuid.UUID
+	CreatedAt   pgtype.Timestamp
+	Title       string
+	Description string
+	Type        ContentType
+}
+
+func (q *Queries) GetUserContent(ctx context.Context, arg GetUserContentParams) ([]GetUserContentRow, error) {
 	rows, err := q.db.Query(ctx, getUserContent, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []interface{}
+	var items []GetUserContentRow
 	for rows.Next() {
-		var column_1 interface{}
-		if err := rows.Scan(&column_1); err != nil {
+		var i GetUserContentRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.Title,
+			&i.Description,
+			&i.Type,
+		); err != nil {
 			return nil, err
 		}
-		items = append(items, column_1)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -189,7 +215,7 @@ WHERE id=$3
 `
 
 type UpdateS3KeyParams struct {
-	S3Key      string
+	S3Key      pgtype.Text
 	ModifiedAt pgtype.Timestamp
 	ID         uuid.UUID
 }

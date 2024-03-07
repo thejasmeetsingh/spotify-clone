@@ -61,7 +61,7 @@ func getContentList(dbCfg *database.Config) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			log.Fatalln("error caught while fetching content list: ", err)
+			log.Errorln("error caught while fetching content list: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
@@ -88,7 +88,7 @@ func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		user, err := getUser(ctx)
 		if err != nil {
-			log.Fatalln(err)
+			log.Errorln(err)
 			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
 			return
 		}
@@ -103,7 +103,7 @@ func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			log.Fatalln("error caught while fetching user content list: ", err)
+			log.Errorln("error caught while fetching user content list: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
@@ -115,7 +115,7 @@ func getUserContentList(dbCfg *database.Config) gin.HandlerFunc {
 		}
 
 		// Parse DB content list with appropriate key names
-		userContentList, err := databaseContentListToContentList(dbContentUserList)
+		userContentList, err := databaseUserContentListToContentList(dbContentUserList)
 		if err != nil {
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
@@ -135,21 +135,14 @@ func getContentDetail(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		user, err := getUser(ctx)
-		if err != nil {
-			log.Fatalln(err)
-			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
-			return
-		}
-
 		dbContent, err := database.GetContentDetailDB(dbCfg, ctx, contentID)
 		if err != nil {
-			log.Fatalln("error caught while fetching content detail: ", err)
+			log.Errorln("error caught while fetching content detail: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
 
-		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent, user)})
+		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent)})
 	}
 }
 
@@ -172,7 +165,7 @@ func addContent(dbCfg *database.Config) gin.HandlerFunc {
 
 		user, err := getUser(ctx)
 		if err != nil {
-			log.Fatalln(err)
+			log.Errorln(err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
@@ -194,12 +187,12 @@ func addContent(dbCfg *database.Config) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			log.Fatalln("error caught while adding content details to DB: ", err)
+			log.Errorln("error caught while adding content details to DB: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
 
-		ctx.SecureJSON(http.StatusCreated, gin.H{"data": databaseContentToContent(dbContent, user)})
+		ctx.SecureJSON(http.StatusCreated, gin.H{"data": databaseContentToContent(dbContent)})
 	}
 }
 
@@ -228,17 +221,10 @@ func updateContent(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		user, err := getUser(ctx)
-		if err != nil {
-			log.Fatalln(err)
-			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
-			return
-		}
-
 		// Fetch content record from DB
 		dbContent, err := database.GetContentDetailDB(dbCfg, ctx, contentID)
 		if err != nil {
-			log.Fatalln("error caught while fetching content detail: ", err)
+			log.Errorln("error caught while fetching content detail: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
@@ -269,12 +255,12 @@ func updateContent(dbCfg *database.Config) gin.HandlerFunc {
 			},
 		})
 		if err != nil {
-			log.Fatalln("error caught while updating content detail: ", err)
+			log.Errorln("error caught while updating content detail: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
 
-		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent, user)})
+		ctx.SecureJSON(http.StatusOK, gin.H{"data": databaseContentToContent(dbContent)})
 	}
 }
 
@@ -302,17 +288,22 @@ func updateContentS3Key(dbCfg *database.Config) gin.HandlerFunc {
 
 		// Update S3 key in DB
 		if err = database.UpdateContentS3KeyDB(dbCfg, ctx, database.UpdateS3KeyParams{
-			ID:    contentID,
-			S3Key: params.Key,
+			ID: contentID,
+			S3Key: pgtype.Text{
+				String: params.Key,
+				Valid:  true,
+			},
 			ModifiedAt: pgtype.Timestamp{
 				Time:  time.Now().UTC(),
 				Valid: true,
 			},
 		}); err != nil {
-			log.Fatalln("error caught while updating content s3 key: ", err)
+			log.Errorln("error caught while updating content s3 key: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
+
+		// TODO: gRPC to conversion service for processing the media file
 
 		ctx.SecureJSON(http.StatusOK, gin.H{"message": "Key updated successfully"})
 	}
@@ -329,7 +320,7 @@ func deleteContent(dbCfg *database.Config) gin.HandlerFunc {
 
 		user, err := getUser(ctx)
 		if err != nil {
-			log.Fatalln(err)
+			log.Errorln(err)
 			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
 			return
 		}
@@ -339,7 +330,7 @@ func deleteContent(dbCfg *database.Config) gin.HandlerFunc {
 			ID:     contentID,
 			UserID: user.ID,
 		}); err != nil {
-			log.Fatalln("error caught while deleting content from DB: ", err)
+			log.Errorln("error caught while deleting content from DB: ", err)
 			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 			return
 		}
@@ -368,7 +359,7 @@ func getPresignedURL(ctx *gin.Context) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 
 	if err != nil {
-		log.Fatalln("error caught while loading aws config: ", err)
+		log.Errorln("error caught while loading aws config: ", err)
 		ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 		return
 	}
@@ -384,7 +375,7 @@ func getPresignedURL(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		log.Fatalln("error caught while generating pre-sign upload URL: ", err)
+		log.Errorln("error caught while generating pre-sign upload URL: ", err)
 		ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
 		return
 	}

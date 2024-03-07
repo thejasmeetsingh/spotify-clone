@@ -7,10 +7,10 @@ RETURNING *;
 SELECT * FROM content WHERE id=$1 FOR UPDATE NOWAIT;
 
 -- name: GetUserContent :many
-SELECT (id, created_at, title, description, type) FROM content WHERE user_id=$1 LIMIT $2 OFFSET $3;
+SELECT id, created_at, title, description, type FROM content WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3;
 
 -- name: GetContentList :many
-SELECT (id, created_at, title, description, type) FROM content LIMIT $1 OFFSET $2;
+SELECT id, created_at, title, description, type FROM content ORDER BY created_at DESC LIMIT $1 OFFSET $2;
 
 -- name: UpdateContentDetails :one
 UPDATE content SET title=$1, description=$2, type=$3, modified_at=$4

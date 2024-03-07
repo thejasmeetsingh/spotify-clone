@@ -62,5 +62,5 @@ type Content struct {
 	Title       string
 	Description string
 	Type        ContentType
-	S3Key       string
+	S3Key       pgtype.Text
 }
