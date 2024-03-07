@@ -34,5 +34,6 @@ func Routes(engine *gin.Engine, dbConn *pgx.Conn) {
 	authRouter.POST("add/", addContent(dbConfig))
 	authRouter.PATCH(":id/", updateContent(dbConfig))
 	authRouter.PUT(":id/", updateContentS3Key(dbConfig))
+	authRouter.DELETE(":id/", deleteContent(dbConfig))
 	authRouter.POST("upload/", getPresignedURL)
 }

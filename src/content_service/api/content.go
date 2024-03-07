@@ -304,6 +304,36 @@ func updateContentS3Key(dbCfg *database.Config) gin.HandlerFunc {
 	}
 }
 
+func deleteContent(dbCfg *database.Config) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		// Parse content ID passed in request path
+		contentID, err := uuid.Parse(ctx.Param("id"))
+		if err != nil {
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Invalid content ID"})
+			return
+		}
+
+		userID, err := getUserID(ctx)
+		if err != nil {
+			log.Fatalln(err)
+			ctx.SecureJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
+			return
+		}
+
+		// Delete content from DB
+		if err = database.DeleteContentDB(dbCfg, ctx, database.DeleteContentParams{
+			ID:     contentID,
+			UserID: userID,
+		}); err != nil {
+			log.Fatalln("error caught while deleting content from DB: ", err)
+			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			return
+		}
+
+		ctx.SecureJSON(http.StatusOK, gin.H{"message": "Content deleted successfully"})
+	}
+}
+
 // API for getting pre-signed URL for file upload
 func getPresignedURL(ctx *gin.Context) {
 	type Parameters struct {
