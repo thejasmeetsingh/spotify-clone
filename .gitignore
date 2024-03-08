@@ -1,5 +1,9 @@
 .vscode/
 *.exe
 *.DS_Store
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
 http
 grpc
