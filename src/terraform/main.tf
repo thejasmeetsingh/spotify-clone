@@ -25,16 +25,19 @@ resource "aws_s3_bucket_public_access_block" "spotify_bucket_public_access" {
   bucket = aws_s3_bucket.spotify_bucket.id
 
   block_public_acls       = false
-  ignore_public_acls      = false
   block_public_policy     = false
+  ignore_public_acls      = false
   restrict_public_buckets = false
 }
 
-resource "aws_s3_bucket_policy" "spotify_bucket_policy" {
+resource "aws_s3_bucket_acl" "spotify_bucket_acl" {
   bucket = aws_s3_bucket.spotify_bucket.id
-  policy = data.aws_iam_policy_document.spotify_bucket_iam_policy.json
+  acl    = "private"
+  depends_on = [
+    aws_s3_bucket_ownership_controls.spotify_bucket_ownership,
+    aws_s3_bucket_public_access_block.spotify_bucket_public_access
+  ]
 }
-
 
 ## CloudFront Configuration ##
 
@@ -56,7 +59,7 @@ resource "aws_cloudfront_distribution" "spotify_s3_distribution" {
   is_ipv6_enabled = true
 
   default_cache_behavior {
-    allowed_methods  = ["HEAD", "GET"]
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["HEAD", "GET"]
     target_origin_id = "S3-${aws_s3_bucket.spotify_bucket.id}"
 
@@ -68,30 +71,9 @@ resource "aws_cloudfront_distribution" "spotify_s3_distribution" {
       }
     }
 
-    viewer_protocol_policy = "allow-all"
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
-  }
-
-  ordered_cache_behavior {
-    path_pattern     = "/cdn/*"
-    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "S3-${aws_s3_bucket.spotify_bucket.id}"
-
-    forwarded_values {
-      query_string = false
-
-      cookies {
-        forward = "none"
-      }
-    }
-
-    min_ttl                = 0
-    default_ttl            = 3600
-    max_ttl                = 86400
-    compress               = true
     viewer_protocol_policy = "redirect-to-https"
   }
 
