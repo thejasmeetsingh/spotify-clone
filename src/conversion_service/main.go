@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/thejasmeetsingh/spotify-clone/src/conversion_service/pb"
 	"google.golang.org/grpc"
@@ -83,7 +84,7 @@ func getS3Client() (*s3.Client, error) {
 	return s3.NewFromConfig(cfg), nil
 }
 
-func downloadFile(client *s3.Client, bucket, key, downloadPath string) error {
+func downloadFileFromS3(client *s3.Client, bucket, key, downloadPath string) error {
 	// Fetch the file from s3
 	result, err := client.GetObject(context.TODO(), &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
@@ -109,7 +110,7 @@ func downloadFile(client *s3.Client, bucket, key, downloadPath string) error {
 	return nil
 }
 
-func uploadFile(client *s3.Client, bucket, key, filePath string) error {
+func uploadFileToS3(client *s3.Client, bucket, key, filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -120,6 +121,7 @@ func uploadFile(client *s3.Client, bucket, key, filePath string) error {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Body:   file,
+		ACL:    types.ObjectCannedACLPublicRead,
 	}); err != nil {
 		return err
 	}
@@ -127,6 +129,17 @@ func uploadFile(client *s3.Client, bucket, key, filePath string) error {
 	file.Close()
 
 	return nil
+}
+
+func deleteFileFromS3(client *s3.Client, bucket, key string) {
+	_, err := client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		log.Errorln("error caught while deleting file from s3: ", err, "key: ", key)
+	}
 }
 
 func removeFiles(fileNames []string) {
@@ -151,7 +164,7 @@ func convertMediaFile(key string, isAudioFile bool) (*string, error) {
 	dstFileName := strings.Split(newKey, "/")[1]
 
 	// Download the file from s3
-	if err = downloadFile(client, bucket, key, srcFileName); err != nil {
+	if err = downloadFileFromS3(client, bucket, key, srcFileName); err != nil {
 		return nil, err
 	}
 
@@ -165,7 +178,7 @@ func convertMediaFile(key string, isAudioFile bool) (*string, error) {
 		convertCmd = exec.Command("ffmpeg", "-i", srcFileName, "-c:a", "aac", "-b:a", "320k", "-vn", "-hls_time", "10", "-hls_playlist_type", "vod", "-hls_flags", "single_file", dstFileName)
 	} else {
 		// FFmpeg command for converting video to H.265/HEVC and then to HLS
-		convertCmd = exec.Command("ffmpeg", "-i", dstFileName, "-c:v", "libx265", "-crf", "28", "-c:a", "aac", "-b:a", "320k", "-hls_time", "10", "-hls_playlist_type", "vod", "-hls_flags", "single_file", dstFileName)
+		convertCmd = exec.Command("ffmpeg", "-i", srcFileName, "-c:v", "libx265", "-crf", "28", "-c:a", "aac", "-b:a", "320k", "-hls_time", "10", "-hls_playlist_type", "vod", "-hls_flags", "single_file", dstFileName)
 	}
 
 	// Execute conversion
@@ -175,13 +188,14 @@ func convertMediaFile(key string, isAudioFile bool) (*string, error) {
 	}
 
 	// Upload file back to s3
-	if err = uploadFile(client, bucket, newKey, dstFileName); err != nil {
+	if err = uploadFileToS3(client, bucket, newKey, dstFileName); err != nil {
 		return nil, err
 	}
 
 	log.Infof("%s object uploaded successfully", newKey)
 
 	// Remove old media file from s3
+	go deleteFileFromS3(client, bucket, key)
 
 	// Remove the downloaded or processed files in background
 	go removeFiles([]string{srcFileName, dstFileName, strings.Split(dstFileName, ".")[0] + ".ts"})
