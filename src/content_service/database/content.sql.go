@@ -175,7 +175,7 @@ func (q *Queries) GetUserContent(ctx context.Context, arg GetUserContentParams) 
 
 const updateContentDetails = `-- name: UpdateContentDetails :one
 UPDATE content SET title=$1, description=$2, type=$3, modified_at=$4
-WHERE id=$5
+WHERE id=$5 AND user_id=$6
 RETURNING id, created_at, modified_at, user_id, title, description, type, s3_key
 `
 
@@ -185,6 +185,7 @@ type UpdateContentDetailsParams struct {
 	Type        ContentType
 	ModifiedAt  pgtype.Timestamp
 	ID          uuid.UUID
+	UserID      uuid.UUID
 }
 
 func (q *Queries) UpdateContentDetails(ctx context.Context, arg UpdateContentDetailsParams) (Content, error) {
@@ -194,6 +195,7 @@ func (q *Queries) UpdateContentDetails(ctx context.Context, arg UpdateContentDet
 		arg.Type,
 		arg.ModifiedAt,
 		arg.ID,
+		arg.UserID,
 	)
 	var i Content
 	err := row.Scan(
@@ -211,16 +213,22 @@ func (q *Queries) UpdateContentDetails(ctx context.Context, arg UpdateContentDet
 
 const updateS3Key = `-- name: UpdateS3Key :exec
 UPDATE content SET s3_key=$1, modified_at=$2
-WHERE id=$3
+WHERE id=$3 AND user_id=$4
 `
 
 type UpdateS3KeyParams struct {
 	S3Key      pgtype.Text
 	ModifiedAt pgtype.Timestamp
 	ID         uuid.UUID
+	UserID     uuid.UUID
 }
 
 func (q *Queries) UpdateS3Key(ctx context.Context, arg UpdateS3KeyParams) error {
-	_, err := q.db.Exec(ctx, updateS3Key, arg.S3Key, arg.ModifiedAt, arg.ID)
+	_, err := q.db.Exec(ctx, updateS3Key,
+		arg.S3Key,
+		arg.ModifiedAt,
+		arg.ID,
+		arg.UserID,
+	)
 	return err
 }

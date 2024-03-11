@@ -14,12 +14,12 @@ SELECT id, created_at, title, description, type FROM content ORDER BY created_at
 
 -- name: UpdateContentDetails :one
 UPDATE content SET title=$1, description=$2, type=$3, modified_at=$4
-WHERE id=$5
+WHERE id=$5 AND user_id=$6
 RETURNING *;
 
 -- name: UpdateS3Key :exec
 UPDATE content SET s3_key=$1, modified_at=$2
-WHERE id=$3;
+WHERE id=$3 AND user_id=$4;
 
 -- name: DeleteContent :exec
 DELETE FROM content WHERE id=$1 AND user_id=$2;

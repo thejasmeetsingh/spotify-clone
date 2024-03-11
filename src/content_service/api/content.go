@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -221,6 +222,13 @@ func updateContent(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
+		user, err := getUser(ctx)
+		if err != nil {
+			log.Errorln(err)
+			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			return
+		}
+
 		// Fetch content record from DB
 		dbContent, err := database.GetContentDetailDB(dbCfg, ctx, contentID)
 		if err != nil {
@@ -246,6 +254,7 @@ func updateContent(dbCfg *database.Config) gin.HandlerFunc {
 		// Update content detail in DB
 		dbContent, err = database.UpdateContentDetailDB(dbCfg, ctx, database.UpdateContentDetailsParams{
 			ID:          contentID,
+			UserID:      user.ID,
 			Title:       params.Title,
 			Description: params.Description,
 			Type:        database.ContentType(params.Type),
@@ -286,9 +295,17 @@ func updateContentS3Key(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
+		user, err := getUser(ctx)
+		if err != nil {
+			log.Errorln(err)
+			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+			return
+		}
+
 		// Update S3 key in DB
 		if err = database.UpdateContentS3KeyDB(dbCfg, ctx, database.UpdateS3KeyParams{
-			ID: contentID,
+			ID:     contentID,
+			UserID: user.ID,
 			S3Key: pgtype.Text{
 				String: params.Key,
 				Valid:  true,
@@ -370,9 +387,10 @@ func getPresignedURL(ctx *gin.Context) {
 
 	// Generate pre-signed URL for file upload
 	res, err := client.PresignPutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(os.Getenv("AWS_REGION")),
+		Bucket: aws.String(os.Getenv("AWS_BUCKET_NAME")),
 		Key:    aws.String(s3_key),
-	})
+		ACL:    types.ObjectCannedACLPublicRead,
+	}, s3.WithPresignExpires(time.Minute*5))
 
 	if err != nil {
 		log.Errorln("error caught while generating pre-sign upload URL: ", err)
