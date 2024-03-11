@@ -1,6 +1,7 @@
 package api
 
 import (
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,7 +15,7 @@ type Content struct {
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Type        string    `json:"type"`
-	Url         string    `json:"url"`
+	Url         *string   `json:"url"`
 }
 
 type ContentList struct {
@@ -26,6 +27,15 @@ type ContentList struct {
 }
 
 func databaseContentToContent(content *database.Content) Content {
+	cdn_base_url := os.Getenv("AWS_CDN_BASE_URL")
+
+	var mediaUrl *string
+
+	if len(content.S3Key.String) != 0 {
+		url := cdn_base_url + "/" + content.S3Key.String
+		mediaUrl = &url
+	}
+
 	return Content{
 		ID:          content.ID,
 		CreatedAt:   content.CreatedAt.Time,
@@ -33,7 +43,7 @@ func databaseContentToContent(content *database.Content) Content {
 		Title:       content.Title,
 		Description: content.Description,
 		Type:        string(content.Type),
-		Url:         "",
+		Url:         mediaUrl,
 	}
 }
 
