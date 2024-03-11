@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"os/exec"
@@ -65,16 +64,18 @@ func main() {
 
 // gRPC request handler
 func (s *server) Conversion(ctx context.Context, in *pb.ConversionRequest) (*pb.ConversionResponse, error) {
-	// Convert the media file in background
-	go convertMediaFile(in.GetKey(), in.GetIsAudioFile())
+	// Convert the media file
+	key, err := convertMediaFile(in.GetKey(), in.GetIsAudioFile())
+	if err != nil {
+		log.Errorln("error caught while converting the media file: ", err)
+		return nil, status.Errorf(codes.Internal, "something went wrong")
+	}
 
-	return &pb.ConversionResponse{
-		Message: "Request received successfully, Processing media file",
-	}, nil
+	return &pb.ConversionResponse{Key: *key}, nil
 }
 
 func getS3Client() (*s3.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(os.Getenv("AWS_REGION")))
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return nil, err
 	}
@@ -105,15 +106,13 @@ func downloadFile(client *s3.Client, bucket, key, downloadPath string) error {
 		return err
 	}
 
-	log.Infof("%s object downloaded successfully", key)
 	return nil
 }
 
-func uploadFile(client *s3.Client, bucket, key, filePath string) {
+func uploadFile(client *s3.Client, bucket, key, filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
-		log.Fatalln("error while opening the given file: ", err)
-		return
+		return err
 	}
 
 	// Upload the given file to s3
@@ -122,49 +121,70 @@ func uploadFile(client *s3.Client, bucket, key, filePath string) {
 		Key:    aws.String(key),
 		Body:   file,
 	}); err != nil {
-		log.Fatalln("error caught while uploading file to s3: ", err)
-		return
+		return err
 	}
 
-	log.Infof("%s object uploaded successfully", key)
 	file.Close()
 
-	if err = os.Remove(filePath); err != nil {
-		log.Errorln("error caught while deleting the file", err)
+	return nil
+}
+
+func removeFiles(fileNames []string) {
+	for _, fileName := range fileNames {
+		err := os.Remove(fileName)
+		if err != nil {
+			log.Errorln("error caught while removing file: ", fileName)
+		}
 	}
 }
 
-func convertMediaFile(key string, isAudioFile bool) {
+func convertMediaFile(key string, isAudioFile bool) (*string, error) {
 	client, err := getS3Client()
 	if err != nil {
-		log.Fatalln("error caught while creating s3 client: ", err)
-		return
+		return nil, err
 	}
 
-	bucket := os.Getenv("AWS_BUCKET")
-	downloadPath := fmt.Sprintf("/media/%s", key)
-	outputPath := fmt.Sprintf("/output/%s", strings.Split(key, ".")[0]+".m3u8")
+	bucket := os.Getenv("AWS_BUCKET_NAME")
+
+	newKey := strings.Split(key, ".")[0] + ".m3u8"
+	srcFileName := strings.Split(key, "/")[1]
+	dstFileName := strings.Split(newKey, "/")[1]
 
 	// Download the file from s3
-	downloadFile(client, bucket, key, downloadPath)
+	if err = downloadFile(client, bucket, key, srcFileName); err != nil {
+		return nil, err
+	}
+
+	log.Infof("%s object downloaded successfully", key)
 
 	var convertCmd *exec.Cmd
 
 	// Determine conversion command based on file type
 	if isAudioFile {
 		// FFmpeg command for converting audio to AAC and then to HLS
-		convertCmd = exec.Command("ffmpeg", "-i", downloadPath, "-c:a", "aac", "-b:a", "320k", "-vn", "-hls_time", "10", "-hls_playlist_type", "vod", outputPath)
+		convertCmd = exec.Command("ffmpeg", "-i", srcFileName, "-c:a", "aac", "-b:a", "320k", "-vn", "-hls_time", "10", "-hls_playlist_type", "vod", "-hls_flags", "single_file", dstFileName)
 	} else {
 		// FFmpeg command for converting video to H.265/HEVC and then to HLS
-		convertCmd = exec.Command("ffmpeg", "-i", downloadPath, "-c:v", "libx265", "-crf", "28", "-c:a", "aac", "-b:a", "320k", "-hls_time", "10", "-hls_playlist_type", "vod", outputPath)
+		convertCmd = exec.Command("ffmpeg", "-i", dstFileName, "-c:v", "libx265", "-crf", "28", "-c:a", "aac", "-b:a", "320k", "-hls_time", "10", "-hls_playlist_type", "vod", "-hls_flags", "single_file", dstFileName)
 	}
 
 	// Execute conversion
-	if err := convertCmd.Run(); err != nil {
-		log.Fatalln("error caught while converting the media file: ", err)
-		return
+	if err = convertCmd.Run(); err != nil {
+		log.Info("error in command")
+		return nil, err
 	}
 
-	// Upload file back to s3 in background
-	go uploadFile(client, bucket, key, outputPath)
+	// Upload file back to s3
+	if err = uploadFile(client, bucket, newKey, dstFileName); err != nil {
+		return nil, err
+	}
+
+	log.Infof("%s object uploaded successfully", newKey)
+
+	// Remove old media file from s3
+
+	// Remove the downloaded or processed files in background
+	go removeFiles([]string{srcFileName, dstFileName, strings.Split(dstFileName, ".")[0] + ".ts"})
+
+	return &newKey, err
 }

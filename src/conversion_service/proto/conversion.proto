@@ -14,5 +14,5 @@ message ConversionRequest {
 }
 
 message ConversionResponse {
-    string message = 1;
+    string key = 1;
 }
