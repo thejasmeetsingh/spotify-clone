@@ -276,7 +276,8 @@ func updateContent(dbCfg *database.Config) gin.HandlerFunc {
 func updateContentS3Key(dbCfg *database.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		type Parameters struct {
-			Key string `json:"key" binding:"required"`
+			Key         string `json:"key" binding:"required"`
+			IsAudioFile bool   `json:"is_audio_file"`
 		}
 		var params Parameters
 
@@ -302,27 +303,18 @@ func updateContentS3Key(dbCfg *database.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Update S3 key in DB
-		if err = database.UpdateContentS3KeyDB(dbCfg, ctx, database.UpdateS3KeyParams{
+		// gRPC to conversion service for processing the media file and update the s3 key
+		go internal.UpdateContentS3Key(dbCfg, ctx, database.UpdateS3KeyParams{
 			ID:     contentID,
 			UserID: user.ID,
-			S3Key: pgtype.Text{
-				String: params.Key,
-				Valid:  true,
-			},
 			ModifiedAt: pgtype.Timestamp{
 				Time:  time.Now().UTC(),
 				Valid: true,
 			},
-		}); err != nil {
-			log.Errorln("error caught while updating content s3 key: ", err)
-			ctx.SecureJSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
-			return
-		}
+			S3Key: pgtype.Text{},
+		}, params.Key, params.IsAudioFile)
 
-		// TODO: gRPC to conversion service for processing the media file
-
-		ctx.SecureJSON(http.StatusOK, gin.H{"message": "Key updated successfully"})
+		ctx.SecureJSON(http.StatusOK, gin.H{"message": "Processing media file. Key will be updated soon"})
 	}
 }
 
@@ -361,7 +353,7 @@ func getPresignedURL(ctx *gin.Context) {
 	type Parameters struct {
 		ContentID   string `json:"content_id" binding:"required"`
 		FileName    string `json:"filename" binding:"required"`
-		IsAudioFile bool   `json:"is_audio_file" binding:"required"`
+		IsAudioFile bool   `json:"is_audio_file"`
 	}
 	var params Parameters
 	err := ctx.ShouldBindJSON(&params)
