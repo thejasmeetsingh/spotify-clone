@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package conversion;
+
+option go_package = "./pb";
+
+service ConversionService {
+    rpc Conversion(ConversionRequest) returns (ConversionResponse) {}
+}
+
+message ConversionRequest {
+    string key = 1;
+    bool isAudioFile = 2;
+}
+
+message ConversionResponse {
+    string key = 1;
+}
