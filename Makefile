@@ -1,25 +1,25 @@
 create-network:
 	docker network create -d bridge shared-network
 
-start-nginx:
+start-services:
+	docker-compose -f src/services/user/docker-compose.yml up -d
+
+	docker-compose -f src/services/content/docker-compose.yml up -d
+
+	docker-compose -f src/services/conversion/docker-compose.yml up -d
+
 	docker run --name api_gateway -d -p 8000:8000 \
-		-v ./nginx.conf:/etc/nginx/conf.d/default.conf \
+		-v ./src/api_gateway/nginx.conf:/etc/nginx/conf.d/default.conf \
 		--network shared-network nginx:1.25.4-alpine
 
-user-service-up:
-	docker-compose -f src/user_service/docker-compose.yml up -d
+stop-services:
+	docker-compose -f src/services/user/docker-compose.yml down
 
-user-service-down:
-	docker-compose -f src/user_service/docker-compose.yml down
+	docker-compose -f src/services/content/docker-compose.yml down
 
-content-service-up:
-	docker-compose -f src/content_service/docker-compose.yml up -d
+	docker-compose -f src/services/conversion/docker-compose.yml down
 
-content-service-down:
-	docker-compose -f src/content_service/docker-compose.yml down
+	docker container stop api_gateway
 
-conversion-service-up:
-	docker-compose -f src/conversion_service/docker-compose.yml up -d
+	docker container rm api_gateway
 
-conversion-service-down:
-	docker-compose -f src/conversion_service/docker-compose.yml down
