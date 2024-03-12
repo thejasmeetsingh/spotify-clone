@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	log "github.com/sirupsen/logrus"
-	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
-	"github.com/thejasmeetsingh/spotify-clone/src/content_service/internal"
+	"github.com/thejasmeetsingh/spotify-clone/src/services/content/database"
+	"github.com/thejasmeetsingh/spotify-clone/src/services/content/internal"
 )
 
 // Parse the offset from query params

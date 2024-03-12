@@ -5,7 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	log "github.com/sirupsen/logrus"
-	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
+	"github.com/thejasmeetsingh/spotify-clone/src/services/content/database"
 )
 
 func UpdateContentS3Key(

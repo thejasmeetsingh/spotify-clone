@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
-	"github.com/thejasmeetsingh/spotify-clone/src/content_service/internal"
+	"github.com/thejasmeetsingh/spotify-clone/src/services/content/database"
+	"github.com/thejasmeetsingh/spotify-clone/src/services/content/internal"
 )
 
 func JWTAuth(dbCfg *database.Config) gin.HandlerFunc {

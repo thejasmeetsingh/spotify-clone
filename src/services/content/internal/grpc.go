@@ -5,8 +5,8 @@ import (
 	"flag"
 	"os"
 
-	conversionPB "github.com/thejasmeetsingh/spotify-clone/src/conversion_service/pb"
-	userPB "github.com/thejasmeetsingh/spotify-clone/src/user_service/pb"
+	conversionPB "github.com/thejasmeetsingh/spotify-clone/src/services/conversion/pb"
+	userPB "github.com/thejasmeetsingh/spotify-clone/src/services/user/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"

@@ -1,4 +1,4 @@
-module github.com/thejasmeetsingh/spotify-clone/src/content_service
+module github.com/thejasmeetsingh/spotify-clone/src/services/content
 
 go 1.21.1
 
@@ -11,8 +11,8 @@ require (
 	github.com/jackc/pgx/v5 v5.5.3
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/thejasmeetsingh/spotify-clone/src/conversion_service v0.0.0-20240312051133-731d9876a785
-	github.com/thejasmeetsingh/spotify-clone/src/user_service v0.0.0-20240301110222-48d8d5e03288
+	github.com/thejasmeetsingh/spotify-clone/src/services/conversion v0.0.0-20240312082752-9c1a269f782e
+	github.com/thejasmeetsingh/spotify-clone/src/services/user v0.0.0-20240312082752-9c1a269f782e
 	google.golang.org/grpc v1.62.1
 )
 

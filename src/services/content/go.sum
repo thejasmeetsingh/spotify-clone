@@ -123,10 +123,10 @@ github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/stretchr/testify v1.8.3 h1:RP3t2pwF7cMEbC1dqtB6poj3niw/9gnV4Cjg5oW5gtY=
 github.com/stretchr/testify v1.8.3/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/thejasmeetsingh/spotify-clone/src/conversion_service v0.0.0-20240312051133-731d9876a785 h1:ixhwyTDXse6HKyOwahKBKy6benP/BvLEai2K344UdJY=
-github.com/thejasmeetsingh/spotify-clone/src/conversion_service v0.0.0-20240312051133-731d9876a785/go.mod h1:SdXU/dqvojnwVkJD9EltzZf2eBq4B+yA69ClhHJvarI=
-github.com/thejasmeetsingh/spotify-clone/src/user_service v0.0.0-20240301110222-48d8d5e03288 h1:p6szYU5xtTv4CoM/8weC45kaVySudvBktDkcnNXNoRM=
-github.com/thejasmeetsingh/spotify-clone/src/user_service v0.0.0-20240301110222-48d8d5e03288/go.mod h1:9n6ZldAsa6YwUtaXUfKL7vxIBdWp7H1WL0S50J6+Bu8=
+github.com/thejasmeetsingh/spotify-clone/src/services/conversion v0.0.0-20240312082752-9c1a269f782e h1:mjn2QswKxoYlJczAGVcg25BrWSnt/Ac90fMfvNv5o58=
+github.com/thejasmeetsingh/spotify-clone/src/services/conversion v0.0.0-20240312082752-9c1a269f782e/go.mod h1:fjL4FKJNO/NJ/9HJxLwPSFdQU2FLXt2RNjp3qxLDVTk=
+github.com/thejasmeetsingh/spotify-clone/src/services/user v0.0.0-20240312082752-9c1a269f782e h1:TZFQf0fAlBAoYqpaoVC0XECJkhSe18DxTLhy+bAuS6I=
+github.com/thejasmeetsingh/spotify-clone/src/services/user v0.0.0-20240312082752-9c1a269f782e/go.mod h1:8cno3riZeaqit6IAkfv7yUXWko3q9ucyvS/gs1g9DWI=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.11 h1:BMaWp1Bb6fHwEtbplGBGJ498wD+LKlNSl25MjdZY4dU=

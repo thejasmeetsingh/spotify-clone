@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/thejasmeetsingh/spotify-clone/src/content_service/database"
+	"github.com/thejasmeetsingh/spotify-clone/src/services/content/database"
 )
 
 type Content struct {

@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	log "github.com/sirupsen/logrus"
-	"github.com/thejasmeetsingh/spotify-clone/src/user_service/api"
+	"github.com/thejasmeetsingh/spotify-clone/src/services/content/api"
 )
 
 func getLoggerFormat(params gin.LogFormatterParams) string {
