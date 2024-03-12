@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"net"
 	"os"
@@ -110,7 +111,7 @@ func downloadFileFromS3(client *s3.Client, bucket, key, downloadPath string) err
 	return nil
 }
 
-func uploadFileToS3(client *s3.Client, bucket, key, filePath string) error {
+func uploadFileToS3(client *s3.Client, bucket, key, filePath, ContentType string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -118,10 +119,11 @@ func uploadFileToS3(client *s3.Client, bucket, key, filePath string) error {
 
 	// Upload the given file to s3
 	if _, err = client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		Body:   file,
-		ACL:    types.ObjectCannedACLPublicRead,
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		Body:        file,
+		ACL:         types.ObjectCannedACLPublicRead,
+		ContentType: aws.String(ContentType),
 	}); err != nil {
 		return err
 	}
@@ -159,9 +161,12 @@ func convertMediaFile(key string, isAudioFile bool) (*string, error) {
 
 	bucket := os.Getenv("AWS_BUCKET_NAME")
 
-	newKey := strings.Split(key, ".")[0] + ".m3u8"
+	hlsKey := strings.Split(key, ".")[0] + ".m3u8"
+	tsKey := strings.Split(key, ".")[0] + ".ts"
+
 	srcFileName := strings.Split(key, "/")[1]
-	dstFileName := strings.Split(newKey, "/")[1]
+	dstFileName := strings.Split(hlsKey, "/")[1]
+	tsFileName := strings.Split(tsKey, "/")[1]
 
 	// Download the file from s3
 	if err = downloadFileFromS3(client, bucket, key, srcFileName); err != nil {
@@ -171,6 +176,7 @@ func convertMediaFile(key string, isAudioFile bool) (*string, error) {
 	log.Infof("%s object downloaded successfully", key)
 
 	var convertCmd *exec.Cmd
+	var stderr bytes.Buffer
 
 	// Determine conversion command based on file type
 	if isAudioFile {
@@ -181,24 +187,33 @@ func convertMediaFile(key string, isAudioFile bool) (*string, error) {
 		convertCmd = exec.Command("ffmpeg", "-i", srcFileName, "-c:v", "libx265", "-crf", "28", "-c:a", "aac", "-b:a", "320k", "-hls_time", "10", "-hls_playlist_type", "vod", "-hls_flags", "single_file", dstFileName)
 	}
 
+	convertCmd.Stderr = &stderr
+
 	// Execute conversion
 	if err = convertCmd.Run(); err != nil {
-		log.Info("error in command")
+		log.Errorln("FFmpeg stderr: ", stderr.String())
 		return nil, err
 	}
 
-	// Upload file back to s3
-	if err = uploadFileToS3(client, bucket, newKey, dstFileName); err != nil {
+	// Upload HLS file to s3
+	if err = uploadFileToS3(client, bucket, hlsKey, dstFileName, "application/vnd.apple.mpegurl"); err != nil {
 		return nil, err
 	}
 
-	log.Infof("%s object uploaded successfully", newKey)
+	log.Infof("%s object uploaded successfully", hlsKey)
+
+	// Upload TS segment file to s3
+	if err = uploadFileToS3(client, bucket, tsKey, tsFileName, "video/mp2t"); err != nil {
+		return nil, err
+	}
+
+	log.Infof("%s object uploaded successfully", tsKey)
 
 	// Remove old media file from s3
 	go deleteFileFromS3(client, bucket, key)
 
 	// Remove the downloaded or processed files in background
-	go removeFiles([]string{srcFileName, dstFileName, strings.Split(dstFileName, ".")[0] + ".ts"})
+	go removeFiles([]string{srcFileName, dstFileName, tsFileName})
 
-	return &newKey, err
+	return &hlsKey, err
 }

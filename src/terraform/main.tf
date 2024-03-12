@@ -39,6 +39,21 @@ resource "aws_s3_bucket_acl" "spotify_bucket_acl" {
   ]
 }
 
+resource "aws_s3_bucket_cors_configuration" "spotify_bucket_cors" {
+  bucket = aws_s3_bucket.spotify_bucket.id
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET"]
+    allowed_origins = ["*"]
+    expose_headers = [
+      "x-amz-server-side-encryption",
+      "x-amz-request-id",
+      "x-amz-id-2"
+    ]
+    max_age_seconds = 3600
+  }
+}
+
 ## CloudFront Configuration ##
 
 resource "aws_cloudfront_origin_access_identity" "spotify_oai" {
