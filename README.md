@@ -1,6 +1,7 @@
 # Spotify Clone
 
 This project is a microservices-based application designed to simulate functionalities similar to Spotify. It's developed with the purpose of understanding gRPC and how to deliver high-quality, low-latency media content.
+![](./assets/overview.png)
 
 ## Services Overview
 
@@ -32,6 +33,8 @@ The application is divided into three main services:
 
    - **Server:** Runs a server for handling gRPC requests exclusively.
 
+![](./assets/service-communication.png)
+
 ## Media Handling Process
 
 1. The Content service provides an endpoint to return a pre-signed URL for direct file uploads to S3, along with a unique key for the file.
@@ -40,9 +43,17 @@ The application is divided into three main services:
 
 3. The Content service then calls the Conversion service via gRPC, passing the unique key.
 
-4. The Conversion service downloads the file, converts it to the appropriate format, uploads it back to S3, and returns the new key to the Content service.
+4. The Conversion service downloads the file, converts it to the appropriate format:
+
+   - Audio file is converted to AAC first and then to HLS.
+
+   - Video file is converted to H.265/HEVC and then to HLS.
+
+   Once file is converted, uploads it back to S3, Remove the old media file from S3 and returns the new key to the Content service.
 
 5. The Content service updates the key in the database.
+
+![](./assets/media_processing.png)
 
 ## Infrastructure
 
@@ -56,7 +67,7 @@ The application is divided into three main services:
 
 ## Getting Started
 
-**Prerequisites:** [Docker](https://www.docker.com/products/docker-desktop/) must be installed on your machine.
+**Prerequisite:** [Docker](https://www.docker.com/products/docker-desktop/) must be installed on your machine.
 
 1. Clone the project repository to your local machine.
 
@@ -67,3 +78,9 @@ The application is divided into three main services:
 4. To start all the services and the API gateway: `make start-services`
 
 5. To stop all the services: `make stop-services`
+
+**Note:** You can follow terraform official documentation to know what how to setup AWS infrastructure using terraform:
+
+6. [Terraform Tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
+
+7. [AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
