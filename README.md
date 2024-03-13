@@ -85,3 +85,11 @@ The application is divided into three main services:
 6. [Terraform Tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 
 7. [AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+
+## REST API Collection
+
+[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/17396704-055a8634-8500-4f66-bae2-7d68ad3b69af?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D17396704-055a8634-8500-4f66-bae2-7d68ad3b69af%26entityType%3Dcollection%26workspaceId%3D392b781a-05ab-415b-9eb8-456aca6f3129)
+
+## gRPC Collection
+
+[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://www.postman.com/thejasmeetsingh/workspace/public-workspace/collection/65df07495aed54c98b37f0f6?action=share&creator=17396704)
