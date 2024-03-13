@@ -82,9 +82,9 @@ The application is divided into three main services:
 
 **Note:** You can follow terraform official documentation to know what how to setup AWS infrastructure using terraform:
 
-6. [Terraform Tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
+1. [Terraform Tutorial](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 
-7. [AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+2. [AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
 
 ## REST API Collection
 
