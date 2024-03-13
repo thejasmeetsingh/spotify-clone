@@ -1,6 +1,7 @@
 # Spotify Clone
 
 This project is a microservices-based application designed to simulate functionalities similar to Spotify. It's developed with the purpose of understanding gRPC and how to deliver high-quality, low-latency media content.
+
 ![](./assets/overview.png)
 
 ## Services Overview
